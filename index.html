@@ -1,28 +1,67 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حکم آنلاین</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حکم آنلاین</title>
 
-    <div class="container">
-        <h1>🃏 حکم آنلاین</h1>
+<style>
+*{
+  box-sizing:border-box;
+}
 
-        <div id="login">
-            <h2>ورود به بازی</h2>
-            <input type="text" id="playerName" placeholder="نام خود را وارد کنید">
-            <button onclick="startGame()">ورود</button>
-        </div>
+body{
+  margin:0;
+  font-family:Tahoma,Arial,sans-serif;
+  background:linear-gradient(135deg,#071b12,#0d3b25);
+  color:white;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
 
-        <div id="game" style="display:none;">
-            <h2>خوش آمدی <span id="name"></span> 👋</h2>
-            <p>اتاق بازی آماده است.</p>
-        </div>
-    </div>
+.container{
+  width:92%;
+  max-width:430px;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:25px;
+  padding:28px 22px;
+  text-align:center;
+  box-shadow:0 15px 50px rgba(0,0,0,.4);
+}
 
-    <script src="script.js"></script>
-</body>
-</html>
+h1{
+  font-size:36px;
+  margin:5px 0 8px;
+}
+
+.subtitle{
+  color:#c9d8d0;
+  margin-bottom:28px;
+}
+
+.card{
+  background:rgba(255,255,255,.08);
+  border-radius:18px;
+  padding:20px;
+  margin-top:15px;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  border:0;
+  border-radius:12px;
+  margin:8px 0;
+  font-size:16px;
+  text-align:center;
+  outline:none;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+ 
