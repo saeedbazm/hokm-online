@@ -6,57 +6,50 @@
 <title>حکم آنلاین</title>
 
 <style>
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
   margin:0;
-  font-family:Tahoma,Arial,sans-serif;
-  background:linear-gradient(135deg,#071b12,#0d3b25);
-  color:white;
   min-height:100vh;
   display:flex;
-  justify-content:center;
   align-items:center;
+  justify-content:center;
+  font-family:Tahoma,Arial,sans-serif;
+  background:linear-gradient(135deg,#061b11,#0d4228);
+  color:white;
 }
 
 .container{
   width:92%;
   max-width:430px;
   background:rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.12);
   border-radius:25px;
-  padding:28px 22px;
+  padding:25px 20px;
   text-align:center;
-  box-shadow:0 15px 50px rgba(0,0,0,.4);
+  box-shadow:0 15px 50px rgba(0,0,0,.45);
 }
 
-h1{
-  font-size:36px;
-  margin:5px 0 8px;
-}
+h1{font-size:34px;margin:5px 0 8px}
 
 .subtitle{
   color:#c9d8d0;
-  margin-bottom:28px;
+  margin-bottom:25px;
 }
 
 .card{
   background:rgba(255,255,255,.08);
   border-radius:18px;
   padding:20px;
-  margin-top:15px;
 }
 
 input{
   width:100%;
   padding:14px;
+  margin:7px 0;
   border:0;
   border-radius:12px;
-  margin:8px 0;
-  font-size:16px;
   text-align:center;
+  font-size:16px;
   outline:none;
 }
 
@@ -64,4 +57,418 @@ button{
   width:100%;
   padding:14px;
   margin-top:10px;
- 
+  border:0;
+  border-radius:12px;
+  background:#d7ad45;
+  color:#17120a;
+  font-size:17px;
+  font-weight:bold;
+}
+
+.secondary{
+  background:#174d32;
+  color:white;
+}
+
+.hidden{display:none}
+
+.room-code{
+  font-size:32px;
+  letter-spacing:5px;
+  color:#ffd866;
+  margin:15px 0;
+}
+
+.player{
+  background:rgba(255,255,255,.08);
+  padding:11px;
+  border-radius:10px;
+  margin:7px 0;
+}
+
+.status{
+  margin-top:15px;
+  color:#b9d7c7;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- صفحه اصلی -->
+<div id="home">
+
+<h1>🃏 حکم آنلاین</h1>
+
+<div class="subtitle">
+بازی حکم چهار نفره
+</div>
+
+<div class="card">
+
+<input id="name" placeholder="نام بازیکن">
+
+<button onclick="createRoom()">
+🏠 ساخت اتاق
+</button>
+
+<button class="secondary" onclick="showJoin()">
+🔑 ورود به اتاق
+</button>
+
+</div>
+
+</div>
+
+
+<!-- ورود به اتاق -->
+
+<div id="join" class="hidden">
+
+<h1>ورود به اتاق</h1>
+
+<div class="card">
+
+<input id="joinName" placeholder="نام بازیکن">
+
+<input id="roomInput" placeholder="کد اتاق">
+
+<button onclick="joinRoom()">
+ورود به اتاق
+</button>
+
+<button class="secondary" onclick="goHome()">
+برگشت
+</button>
+
+</div>
+
+</div>
+
+
+<!-- اتاق -->
+
+<div id="room" class="hidden">
+
+<h1>🎴 میز حکم</h1>
+
+<div class="subtitle">
+کد اتاق
+</div>
+
+<div class="room-code" id="roomCode">
+------
+</div>
+
+<button onclick="copyRoom()">
+📋 کپی کد اتاق
+</button>
+
+<h3>بازیکنان</h3>
+
+<div id="players"></div>
+
+<div class="status" id="status">
+در حال اتصال...
+</div>
+
+</div>
+
+</div>
+
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  arrayUnion
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* Firebase */
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyDtRaFMcVr142yxGzvKxwmVCqA31xlIc_8",
+
+  authDomain:
+  "hokm-online-a0d29.firebaseapp.com",
+
+  projectId:
+  "hokm-online-a0d29",
+
+  storageBucket:
+  "hokm-online-a0d29.firebasestorage.app",
+
+  messagingSenderId:
+  "141416145029",
+
+  appId:
+  "1:141416145029:web:40a3593c1c4d9ae93e89ec"
+
+};
+
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+
+
+/* متغیرها */
+
+let currentRoom = "";
+let playerName = "";
+let unsubscribe = null;
+
+
+/* ساخت اتاق */
+
+window.createRoom = async function(){
+
+  playerName =
+    document.getElementById("name").value.trim();
+
+  if(!playerName){
+
+    alert("لطفاً نام خود را وارد کنید");
+
+    return;
+  }
+
+
+  currentRoom =
+    Math.random()
+    .toString(36)
+    .substring(2,8)
+    .toUpperCase();
+
+
+  const roomRef =
+    doc(db,"rooms",currentRoom);
+
+
+  await setDoc(roomRef,{
+
+    players:[
+      {
+        name:playerName,
+        id:Date.now().toString()
+      }
+    ],
+
+    createdAt:Date.now(),
+
+    status:"waiting"
+
+  });
+
+
+  openRoom();
+
+  listenRoom();
+
+};
+
+
+/* ورود */
+
+window.joinRoom = async function(){
+
+  playerName =
+    document.getElementById("joinName").value.trim();
+
+  currentRoom =
+    document.getElementById("roomInput").value
+    .trim()
+    .toUpperCase();
+
+
+  if(!playerName || !currentRoom){
+
+    alert("نام و کد اتاق را وارد کنید");
+
+    return;
+  }
+
+
+  const roomRef =
+    doc(db,"rooms",currentRoom);
+
+
+  try{
+
+    await updateDoc(roomRef,{
+
+      players:arrayUnion({
+
+        name:playerName,
+
+        id:Date.now().toString()
+
+      })
+
+    });
+
+
+    openRoom();
+
+    listenRoom();
+
+
+  }catch(error){
+
+    alert("این اتاق وجود ندارد");
+
+    console.log(error);
+
+  }
+
+};
+
+
+/* نمایش اتاق */
+
+function openRoom(){
+
+  document
+  .getElementById("home")
+  .classList.add("hidden");
+
+  document
+  .getElementById("join")
+  .classList.add("hidden");
+
+  document
+  .getElementById("room")
+  .classList.remove("hidden");
+
+  document
+  .getElementById("roomCode")
+  .innerText=currentRoom;
+
+}
+
+
+/* گوش دادن به تغییرات اتاق */
+
+function listenRoom(){
+
+  const roomRef =
+    doc(db,"rooms",currentRoom);
+
+
+  unsubscribe =
+    onSnapshot(roomRef,(snapshot)=>{
+
+      if(!snapshot.exists()){
+
+        document.getElementById("status")
+        .innerText="اتاق حذف شده است";
+
+        return;
+
+      }
+
+
+      const data=snapshot.data();
+
+      const players=data.players || [];
+
+      const box =
+        document.getElementById("players");
+
+
+      box.innerHTML="";
+
+
+      players.forEach((player,index)=>{
+
+        const div =
+          document.createElement("div");
+
+        div.className="player";
+
+        div.innerText =
+          (index===0 ? "👑 " : "👤 ")
+          + player.name;
+
+        box.appendChild(div);
+
+      });
+
+
+      if(players.length>=4){
+
+        document.getElementById("status")
+        .innerText=
+        "✅ چهار بازیکن آماده‌اند";
+
+      }else{
+
+        document.getElementById("status")
+        .innerText=
+        "منتظر بازیکنان دیگر... "
+        + players.length
+        + "/4";
+
+      }
+
+    });
+
+}
+
+
+/* کپی کد */
+
+window.copyRoom = function(){
+
+  navigator.clipboard
+  .writeText(currentRoom);
+
+  alert("کد اتاق کپی شد ✅");
+
+};
+
+
+/* برگشت */
+
+window.showJoin = function(){
+
+  document
+  .getElementById("home")
+  .classList.add("hidden");
+
+  document
+  .getElementById("join")
+  .classList.remove("hidden");
+
+};
+
+
+window.goHome = function(){
+
+  document
+  .getElementById("join")
+  .classList.add("hidden");
+
+  document
+  .getElementById("home")
+  .classList.remove("hidden");
+
+};
+
+</script>
+
+</body>
+</html>
