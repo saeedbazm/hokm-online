@@ -11,36 +11,24 @@
 body{
   margin:0;
   min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
   font-family:Tahoma,Arial,sans-serif;
   background:linear-gradient(135deg,#061b11,#0d4228);
   color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
 .container{
-  width:92%;
-  max-width:430px;
-  background:rgba(0,0,0,.35);
+  width:94%;
+  max-width:500px;
+  background:rgba(0,0,0,.38);
   border-radius:25px;
-  padding:25px 20px;
+  padding:22px;
   text-align:center;
-  box-shadow:0 15px 50px rgba(0,0,0,.45);
 }
 
-h1{font-size:34px;margin:5px 0 8px}
-
-.subtitle{
-  color:#c9d8d0;
-  margin-bottom:25px;
-}
-
-.card{
-  background:rgba(255,255,255,.08);
-  border-radius:18px;
-  padding:20px;
-}
+h1{margin:5px 0 15px}
 
 input{
   width:100%;
@@ -50,17 +38,15 @@ input{
   border-radius:12px;
   text-align:center;
   font-size:16px;
-  outline:none;
 }
 
 button{
   width:100%;
   padding:14px;
-  margin-top:10px;
+  margin-top:9px;
   border:0;
   border-radius:12px;
   background:#d7ad45;
-  color:#17120a;
   font-size:17px;
   font-weight:bold;
 }
@@ -73,23 +59,46 @@ button{
 .hidden{display:none}
 
 .room-code{
-  font-size:32px;
-  letter-spacing:5px;
+  font-size:30px;
   color:#ffd866;
-  margin:15px 0;
+  letter-spacing:5px;
+  margin:12px;
 }
 
 .player{
   background:rgba(255,255,255,.08);
   padding:11px;
+  margin:6px 0;
   border-radius:10px;
-  margin:7px 0;
 }
 
-.status{
+.cards{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
   margin-top:15px;
-  color:#b9d7c7;
-  font-size:14px;
+}
+
+.card{
+  width:58px;
+  height:78px;
+  background:white;
+  color:#111;
+  border-radius:9px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.red{color:#d22}
+
+.status{
+  margin:15px 0;
+  color:#c5ddd1;
 }
 </style>
 </head>
@@ -103,12 +112,6 @@ button{
 
 <h1>🃏 حکم آنلاین</h1>
 
-<div class="subtitle">
-بازی حکم چهار نفره
-</div>
-
-<div class="card">
-
 <input id="name" placeholder="نام بازیکن">
 
 <button onclick="createRoom()">
@@ -121,23 +124,18 @@ button{
 
 </div>
 
-</div>
 
-
-<!-- ورود به اتاق -->
-
+<!-- ورود -->
 <div id="join" class="hidden">
 
 <h1>ورود به اتاق</h1>
-
-<div class="card">
 
 <input id="joinName" placeholder="نام بازیکن">
 
 <input id="roomInput" placeholder="کد اتاق">
 
 <button onclick="joinRoom()">
-ورود به اتاق
+ورود
 </button>
 
 <button class="secondary" onclick="goHome()">
@@ -146,25 +144,18 @@ button{
 
 </div>
 
-</div>
-
 
 <!-- اتاق -->
-
 <div id="room" class="hidden">
 
 <h1>🎴 میز حکم</h1>
 
-<div class="subtitle">
-کد اتاق
-</div>
+<div>کد اتاق:</div>
 
-<div class="room-code" id="roomCode">
-------
-</div>
+<div class="room-code" id="roomCode"></div>
 
 <button onclick="copyRoom()">
-📋 کپی کد اتاق
+📋 کپی کد
 </button>
 
 <h3>بازیکنان</h3>
@@ -172,8 +163,30 @@ button{
 <div id="players"></div>
 
 <div class="status" id="status">
-در حال اتصال...
+منتظر بازیکنان...
 </div>
+
+<button id="startButton"
+onclick="startGame()"
+class="hidden">
+🎴 شروع بازی
+</button>
+
+</div>
+
+
+<!-- بازی -->
+<div id="game" class="hidden">
+
+<h1>🎴 بازی حکم</h1>
+
+<div id="gameStatus" class="status"></div>
+
+<div id="playersGame"></div>
+
+<h3>کارت‌های من</h3>
+
+<div id="myCards" class="cards"></div>
 
 </div>
 
@@ -188,10 +201,11 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   onSnapshot,
-  arrayUnion
+  runTransaction
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -200,139 +214,209 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
 
-  apiKey: "AIzaSyDtRaFMcVr142yxGzvKxwmVCqA31xlIc_8",
+apiKey:"AIzaSyDtRaFMcVr142yxGzvKxwmVCqA31xlIc_8",
 
-  authDomain:
-  "hokm-online-a0d29.firebaseapp.com",
+authDomain:"hokm-online-a0d29.firebaseapp.com",
 
-  projectId:
-  "hokm-online-a0d29",
+projectId:"hokm-online-a0d29",
 
-  storageBucket:
-  "hokm-online-a0d29.firebasestorage.app",
+storageBucket:"hokm-online-a0d29.firebasestorage.app",
 
-  messagingSenderId:
-  "141416145029",
+messagingSenderId:"141416145029",
 
-  appId:
-  "1:141416145029:web:40a3593c1c4d9ae93e89ec"
+appId:"1:141416145029:web:40a3593c1c4d9ae93e89ec"
 
 };
 
+const app=initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
+const db=getFirestore(app);
 
 
-/* متغیرها */
+/* اطلاعات بازیکن */
 
-let currentRoom = "";
-let playerName = "";
-let unsubscribe = null;
+let roomCode="";
+let playerName="";
+let playerId="";
+
+let unsubscribe=null;
+
+
+/* شناسه مخصوص همین دستگاه */
+
+function getPlayerId(){
+
+let id=localStorage.getItem("hokmPlayerId");
+
+if(!id){
+
+id=
+Date.now().toString(36)+
+Math.random().toString(36).substring(2,8);
+
+localStorage.setItem("hokmPlayerId",id);
+
+}
+
+return id;
+
+}
+
+playerId=getPlayerId();
 
 
 /* ساخت اتاق */
 
-window.createRoom = async function(){
+window.createRoom=async function(){
 
-  playerName =
-    document.getElementById("name").value.trim();
+playerName=
+document.getElementById("name").value.trim();
 
-  if(!playerName){
+if(!playerName){
 
-    alert("لطفاً نام خود را وارد کنید");
+alert("نام خودت را وارد کن");
 
-    return;
-  }
+return;
 
-
-  currentRoom =
-    Math.random()
-    .toString(36)
-    .substring(2,8)
-    .toUpperCase();
+}
 
 
-  const roomRef =
-    doc(db,"rooms",currentRoom);
+roomCode=
+Math.random()
+.toString(36)
+.substring(2,8)
+.toUpperCase();
 
 
-  await setDoc(roomRef,{
-
-    players:[
-      {
-        name:playerName,
-        id:Date.now().toString()
-      }
-    ],
-
-    createdAt:Date.now(),
-
-    status:"waiting"
-
-  });
+const roomRef=
+doc(db,"rooms",roomCode);
 
 
-  openRoom();
+await setDoc(roomRef,{
 
-  listenRoom();
+hostId:playerId,
+
+status:"waiting",
+
+players:[{
+
+id:playerId,
+
+name:playerName
+
+}],
+
+createdAt:Date.now()
+
+});
+
+
+openRoom();
+
+listenRoom();
 
 };
 
 
-/* ورود */
+/* ورود به اتاق */
 
-window.joinRoom = async function(){
+window.joinRoom=async function(){
 
-  playerName =
-    document.getElementById("joinName").value.trim();
+playerName=
+document.getElementById("joinName")
+.value.trim();
 
-  currentRoom =
-    document.getElementById("roomInput").value
-    .trim()
-    .toUpperCase();
-
-
-  if(!playerName || !currentRoom){
-
-    alert("نام و کد اتاق را وارد کنید");
-
-    return;
-  }
+roomCode=
+document.getElementById("roomInput")
+.value.trim()
+.toUpperCase();
 
 
-  const roomRef =
-    doc(db,"rooms",currentRoom);
+if(!playerName || !roomCode){
+
+alert("نام و کد اتاق را وارد کن");
+
+return;
+
+}
 
 
-  try{
-
-    await updateDoc(roomRef,{
-
-      players:arrayUnion({
-
-        name:playerName,
-
-        id:Date.now().toString()
-
-      })
-
-    });
+const roomRef=
+doc(db,"rooms",roomCode);
 
 
-    openRoom();
+try{
 
-    listenRoom();
+await runTransaction(db,async(transaction)=>{
+
+const snap=
+await transaction.get(roomRef);
+
+if(!snap.exists()){
+
+throw new Error("NO_ROOM");
+
+}
+
+const data=snap.data();
+
+const players=data.players || [];
 
 
-  }catch(error){
+if(players.length>=4){
 
-    alert("این اتاق وجود ندارد");
+throw new Error("FULL");
 
-    console.log(error);
+}
 
-  }
+
+if(data.status==="playing"){
+
+throw new Error("STARTED");
+
+}
+
+
+players.push({
+
+id:playerId,
+
+name:playerName
+
+});
+
+
+transaction.update(roomRef,{
+
+players:players
+
+});
+
+});
+
+
+openRoom();
+
+listenRoom();
+
+
+}catch(error){
+
+if(error.message==="FULL"){
+
+alert("این اتاق ۴ بازیکن دارد");
+
+}else if(error.message==="STARTED"){
+
+alert("بازی شروع شده است");
+
+}else{
+
+alert("اتاق پیدا نشد");
+
+}
+
+}
 
 };
 
@@ -341,130 +425,355 @@ window.joinRoom = async function(){
 
 function openRoom(){
 
-  document
-  .getElementById("home")
-  .classList.add("hidden");
+document
+.getElementById("home")
+.classList.add("hidden");
 
-  document
-  .getElementById("join")
-  .classList.add("hidden");
+document
+.getElementById("join")
+.classList.add("hidden");
 
-  document
-  .getElementById("room")
-  .classList.remove("hidden");
+document
+.getElementById("room")
+.classList.remove("hidden");
 
-  document
-  .getElementById("roomCode")
-  .innerText=currentRoom;
+document
+.getElementById("roomCode")
+.innerText=roomCode;
 
 }
 
 
-/* گوش دادن به تغییرات اتاق */
+/* گوش دادن به اتاق */
 
 function listenRoom(){
 
-  const roomRef =
-    doc(db,"rooms",currentRoom);
+const roomRef=
+doc(db,"rooms",roomCode);
 
 
-  unsubscribe =
-    onSnapshot(roomRef,(snapshot)=>{
+unsubscribe=
+onSnapshot(roomRef,(snap)=>{
 
-      if(!snapshot.exists()){
+if(!snap.exists()){
 
-        document.getElementById("status")
-        .innerText="اتاق حذف شده است";
-
-        return;
-
-      }
-
-
-      const data=snapshot.data();
-
-      const players=data.players || [];
-
-      const box =
-        document.getElementById("players");
-
-
-      box.innerHTML="";
-
-
-      players.forEach((player,index)=>{
-
-        const div =
-          document.createElement("div");
-
-        div.className="player";
-
-        div.innerText =
-          (index===0 ? "👑 " : "👤 ")
-          + player.name;
-
-        box.appendChild(div);
-
-      });
-
-
-      if(players.length>=4){
-
-        document.getElementById("status")
-        .innerText=
-        "✅ چهار بازیکن آماده‌اند";
-
-      }else{
-
-        document.getElementById("status")
-        .innerText=
-        "منتظر بازیکنان دیگر... "
-        + players.length
-        + "/4";
-
-      }
-
-    });
+return;
 
 }
 
 
-/* کپی کد */
+const data=snap.data();
 
-window.copyRoom = function(){
+const players=data.players || [];
 
-  navigator.clipboard
-  .writeText(currentRoom);
 
-  alert("کد اتاق کپی شد ✅");
+const box=
+document.getElementById("players");
+
+box.innerHTML="";
+
+
+players.forEach((p,index)=>{
+
+const div=
+document.createElement("div");
+
+div.className="player";
+
+div.innerText=
+(index===0?"👑 ":"👤 ")+p.name;
+
+box.appendChild(div);
+
+});
+
+
+document.getElementById("status").innerText=
+players.length+"/4 بازیکن";
+
+
+if(
+players.length===4 &&
+data.hostId===playerId &&
+data.status==="waiting"
+){
+
+document
+.getElementById("startButton")
+.classList.remove("hidden");
+
+}else{
+
+document
+.getElementById("startButton")
+.classList.add("hidden");
+
+}
+
+
+if(data.status==="playing"){
+
+showGame(data);
+
+}
+
+});
+
+}
+
+
+/* ساخت دسته کارت */
+
+function createDeck(){
+
+const suits=[
+
+{symbol:"♠",name:"spades",red:false},
+
+{symbol:"♥",name:"hearts",red:true},
+
+{symbol:"♦",name:"diamonds",red:true},
+
+{symbol:"♣",name:"clubs",red:false}
+
+];
+
+const values=[
+
+"A","K","Q","J","10","9","8","7","6","5","4","3","2"
+
+];
+
+
+let deck=[];
+
+
+for(const suit of suits){
+
+for(const value of values){
+
+deck.push({
+
+suit:suit.symbol,
+
+value:value,
+
+red:suit.red
+
+});
+
+}
+
+}
+
+
+return deck;
+
+}
+
+
+/* بُر زدن */
+
+function shuffle(array){
+
+for(let i=array.length-1;i>0;i--){
+
+const j=
+Math.floor(Math.random()*(i+1));
+
+[array[i],array[j]]=
+[array[j],array[i]];
+
+}
+
+return array;
+
+}
+
+
+/* شروع بازی */
+
+window.startGame=async function(){
+
+const roomRef=
+doc(db,"rooms",roomCode);
+
+
+const snap=
+await getDoc(roomRef);
+
+
+if(!snap.exists()){
+
+alert("اتاق پیدا نشد");
+
+return;
+
+}
+
+
+const data=snap.data();
+
+const players=data.players || [];
+
+
+if(players.length!==4){
+
+alert("برای شروع دقیقاً ۴ بازیکن لازم است");
+
+return;
+
+}
+
+
+let deck=shuffle(createDeck());
+
+
+let hands={};
+
+
+players.forEach((player,index)=>{
+
+hands[player.id]=
+deck.slice(index*5,index*5+5);
+
+});
+
+
+await updateDoc(roomRef,{
+
+status:"playing",
+
+hands:hands,
+
+deck:deck.slice(20),
+
+turn:0,
+
+startedAt:Date.now()
+
+});
+
+};
+
+
+/* نمایش بازی */
+
+function showGame(data){
+
+document
+.getElementById("room")
+.classList.add("hidden");
+
+document
+.getElementById("game")
+.classList.remove("hidden");
+
+
+const players=data.players || [];
+
+
+const box=
+document.getElementById("playersGame");
+
+box.innerHTML="";
+
+
+players.forEach((p,index)=>{
+
+const div=
+document.createElement("div");
+
+div.className="player";
+
+div.innerText=
+(index===0?"👑 ":"👤 ")+p.name;
+
+box.appendChild(div);
+
+});
+
+
+const myHand=
+(data.hands && data.hands[playerId])
+? data.hands[playerId]
+:[];
+
+
+const cards=
+document.getElementById("myCards");
+
+cards.innerHTML="";
+
+
+myHand.forEach(card=>{
+
+const div=
+document.createElement("div");
+
+div.className="card";
+
+if(card.red){
+
+div.classList.add("red");
+
+}
+
+div.innerHTML=
+"<div>"+card.value+"</div>"+
+"<div>"+card.suit+"</div>";
+
+cards.appendChild(div);
+
+});
+
+
+document
+.getElementById("gameStatus")
+.innerText=
+"۵ کارت اول پخش شد 🎴";
+
+}
+
+
+/* کپی */
+
+window.copyRoom=function(){
+
+navigator.clipboard
+.writeText(roomCode);
+
+alert("کد اتاق کپی شد ✅");
+
+};
+
+
+/* ورود */
+
+window.showJoin=function(){
+
+document
+.getElementById("home")
+.classList.add("hidden");
+
+document
+.getElementById("join")
+.classList.remove("hidden");
 
 };
 
 
 /* برگشت */
 
-window.showJoin = function(){
+window.goHome=function(){
 
-  document
-  .getElementById("home")
-  .classList.add("hidden");
+document
+.getElementById("join")
+.classList.add("hidden");
 
-  document
-  .getElementById("join")
-  .classList.remove("hidden");
-
-};
-
-
-window.goHome = function(){
-
-  document
-  .getElementById("join")
-  .classList.add("hidden");
-
-  document
-  .getElementById("home")
-  .classList.remove("hidden");
+document
+.getElementById("home")
+.classList.remove("hidden");
 
 };
 
